@@ -1,6 +1,7 @@
-# Three.js-Hello_World
-First Three.js project.
+# Three.js-Course
+Code for the exercises from Simon Dev. The lessons ae separated in branches.
 
+# Hello World
 Using the best practices, it creates a simple scene containing a camera and a mesh.
 The camera can be rotated by dragging the mouse on top of the scene.
 
