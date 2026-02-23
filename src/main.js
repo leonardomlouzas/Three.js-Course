@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
+import Stats from 'three/addons/libs/stats.module.js';
 
 class App {
 
@@ -10,8 +10,15 @@ class App {
     #scene_ = null;
     #clock_ = null;
     #controls_ = null;
+    #redMat_ = null;
+    #whiteMat_ = null;
+    #cubeMat_ = null;
+    #stats_ = null;
 
     constructor() {
+        this.#redMat_ = new THREE.Color(0xff0000);
+        this.#whiteMat_ = new THREE.Color(0xffffff);
+        this.#cubeMat_ = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     }
 
     async initialize() {
@@ -32,12 +39,15 @@ class App {
         this.#threejs_.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(this.#threejs_.domElement);
 
+        this.#stats_ = new Stats();
+        document.body.appendChild(this.#stats_.dom);
+
         const fov = 60;
         const aspect = window.innerWidth / window.innerHeight;
         const near = 0.1;
         const far = 1000;
         this.#camera_ = new THREE.PerspectiveCamera(fov, aspect, near, far);
-        this.#camera_.position.set(0, 5, 5);
+        this.#camera_.position.set(0, 3, 5);
         this.#camera_.lookAt(new THREE.Vector3(0, 0, 0));
 
         this.#controls_ = new OrbitControls(this.#camera_, this.#threejs_.domElement);
@@ -46,6 +56,31 @@ class App {
 
         this.#scene_ = new THREE.Scene();
         this.#scene_.background = new THREE.Color(0x000000);
+
+        // // create cube
+        // const geo = new THREE.BoxGeometry(1, 1, 1);
+        // const cube = new THREE.Mesh(geo, this.#cubeMat_);
+        // cube.position.x = -2;
+
+        // // create second cube
+        // const cube2 = new THREE.Mesh(geo, this.#cubeMat_);
+        // cube2.position.x = 2;
+
+        // this.#scene_.add(cube);
+        // this.#scene_.add(cube2);
+
+
+        const grid = 200;
+        const geo = new THREE.BoxGeometry(1, 1, 1);
+        const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        for (let x = -grid; x <= grid; ++x) {
+            for (let y = -grid; y <= grid; ++y) {
+                const cube = new THREE.Mesh(geo, this.#cubeMat_);
+                cube.position.set(x * 2, 0, y * 2);
+                this.#scene_.add(cube);
+            }
+        }
+
     }
 
     #onWindowResize_() {
@@ -76,7 +111,10 @@ class App {
     }
 
     #step_(timeElapsed) {
-        this.#controls_.update(timeElapsed);
+        this.#stats_.update();
+        this.#cubeMat_.color.lerpColors(
+            this.#whiteMat_, this.#redMat_, Math.sin(this.#clock_.getElapsedTime()) * .5 + .5
+        );
     }
 }
 
