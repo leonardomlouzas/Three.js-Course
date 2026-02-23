@@ -1,49 +1,88 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/Addons.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
 
 class App {
+
     #threejs_ = null;
     #camera_ = null;
-    #scene_ = null;
 
-    constructor() {}
-    
-    Initialize() {
+    #scene_ = null;
+    #clock_ = null;
+    #controls_ = null;
+
+    constructor() {
+    }
+
+    async initialize() {
+        this.#clock_ = new THREE.Clock(true);
+
+        window.addEventListener('resize', () => {
+            this.#onWindowResize_();
+        }, false);
+
+        await this.#setupProject_();
+
+        this.#onWindowResize_();
+        this.#raf_();
+    }
+
+    async #setupProject_() {
         this.#threejs_ = new THREE.WebGLRenderer();
         this.#threejs_.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(this.#threejs_.domElement);
 
-        const aspect = window.innerHeight / window.innerWidth;
-        this.#camera_ = new THREE.PerspectiveCamera(50, aspect, .1, 2000);
-        this.#camera_.position.z = 5;
+        const fov = 60;
+        const aspect = window.innerWidth / window.innerHeight;
+        const near = 0.1;
+        const far = 1000;
+        this.#camera_ = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        this.#camera_.position.set(0, 5, 5);
+        this.#camera_.lookAt(new THREE.Vector3(0, 0, 0));
 
-        const controls = new OrbitControls(this.#camera_, this.#threejs_.domElement);
-        controls.enableDamping = true;
-        controls.target.set(0,0,0);
-        controls.update();
+        this.#controls_ = new OrbitControls(this.#camera_, this.#threejs_.domElement);
+        this.#controls_.enableDamping = true;
+        this.#controls_.target.set(0, 0, 0);
 
         this.#scene_ = new THREE.Scene();
-
-        const mesh = new THREE.Mesh(
-            new THREE.BoxGeometry(),
-            new THREE.MeshBasicMaterial({
-                color: 0xff0000,
-                wireframe: true
-            })
-        );
-        this.#scene_.add(mesh);
+        this.#scene_.background = new THREE.Color(0x000000);
     }
 
-    Run() {
-        const render = () => {
-            this.#threejs_.render(this.#scene_, this.#camera_);
-            requestAnimationFrame(render);
-        };
+    #onWindowResize_() {
+        const dpr = window.devicePixelRatio;
+        const canvas = this.#threejs_.domElement;
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
 
-        render();
+        const aspect = w / h;
+
+        this.#threejs_.setSize(w * dpr, h * dpr, false);
+        this.#camera_.aspect = aspect;
+        this.#camera_.updateProjectionMatrix();
     }
-};
 
-const app = new App();
-app.Initialize();
-app.Run();
+    #raf_() {
+        requestAnimationFrame((t) => {
+            this.#step_(this.#clock_.getDelta());
+            this.#render_();
+            this.#raf_();
+        });
+    }
+
+    #render_() {
+        this.#threejs_.render(this.#scene_, this.#camera_);
+    }
+
+    #step_(timeElapsed) {
+        this.#controls_.update(timeElapsed);
+    }
+}
+
+
+const APP_ = new App();
+
+window.addEventListener('DOMContentLoaded', async () => {
+    await APP_.initialize();
+});
