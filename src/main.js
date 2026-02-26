@@ -37,7 +37,7 @@ class App {
         const near = 0.1;
         const far = 1000;
         this.#camera_ = new THREE.PerspectiveCamera(fov, aspect, near, far);
-        this.#camera_.position.set(0, 5, 5);
+        this.#camera_.position.set(2, 1, 2);
         this.#camera_.lookAt(new THREE.Vector3(0, 0, 0));
 
         this.#controls_ = new OrbitControls(this.#camera_, this.#threejs_.domElement);
@@ -76,7 +76,6 @@ class App {
     }
 
     #step_(timeElapsed) {
-        this.#controls_.update(timeElapsed);
     }
 }
 
