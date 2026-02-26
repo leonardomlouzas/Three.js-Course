@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
+import { Pane } from 'tweakpane';
 
 class App {
 
@@ -10,6 +10,11 @@ class App {
     #scene_ = null;
     #clock_ = null;
     #controls_ = null;
+
+    #perspectiveCamera_ = null;
+    #ortographicCamera_ = null;
+
+    #debugParams_ = {};
 
     constructor() {
     }
@@ -36,7 +41,12 @@ class App {
         const aspect = window.innerWidth / window.innerHeight;
         const near = 0.1;
         const far = 1000;
-        this.#camera_ = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        this.#perspectiveCamera_ = new THREE.PerspectiveCamera(fov, aspect, near, far);
+        this.#camera_ = this.#perspectiveCamera_;
+
+        const w = 3;
+        this.#ortographicCamera_ = new THREE.OrthographicCamera(-w * aspect, w, w, -w, near, far);
+
         this.#camera_.position.set(2, 1, 2);
         this.#camera_.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -46,6 +56,59 @@ class App {
 
         this.#scene_ = new THREE.Scene();
         this.#scene_.background = new THREE.Color(0x000000);
+
+        // Setup simple scene
+        const light = new THREE.DirectionalLight();
+        light.position.set(1, 2, 1);
+        light.lookAt(new THREE.Vector3(0, 0, 0));
+        this.#scene_.add(light);
+
+        const ambientLight = new THREE.AmbientLight();
+        this.#scene_.add(ambientLight);
+
+        const geo = new THREE.BoxGeometry(1, 1, 1);
+        const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+
+        for (let x = -2; x <= 2; x++) {
+            for (let z = -2; z <= 2; z++) {
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(x * 2, 0, z * 2);
+                this.#scene_.add(mesh);
+            }
+        }
+
+        // Create debug pane
+        const pane = new Pane();
+        const debugUI = pane.addFolder({
+            title: 'Debug',
+        });
+
+        this.#debugParams_ = {
+            camera: {
+                type: 'perspective',
+                perspective: 'perspective',
+                ortographic: 'ortographic',
+            },
+            fov: fov,
+        };
+
+        debugUI.addBinding(this.#debugParams_.camera, 'type', {
+            options: {
+                perspective: this.#debugParams_.camera.perspective,
+                ortographic: this.#debugParams_.camera.ortographic,
+            }
+        }).on('change', (evt) => {
+            if (evt.value === 'perspective') {
+                this.#camera_ = this.#perspectiveCamera_;
+            } else {
+                this.#camera_ = this.#ortographicCamera_;
+            }
+        });
+
+        debugUI.addBinding(this.#debugParams_, 'fov', { min: 0, max: 180 }).on('change', (evt) => {
+            this.#perspectiveCamera_.fov = evt.value;
+            this.#perspectiveCamera_.updateProjectionMatrix();
+        })
     }
 
     #onWindowResize_() {
@@ -59,8 +122,13 @@ class App {
         const aspect = w / h;
 
         this.#threejs_.setSize(w * dpr, h * dpr, false);
-        this.#camera_.aspect = aspect;
-        this.#camera_.updateProjectionMatrix();
+        this.#perspectiveCamera_.aspect = aspect;
+        this.#perspectiveCamera_.updateProjectionMatrix();
+
+        this.#camera_.left = -3 * aspect;
+        this.#camera_.right = 3 * aspect;
+        this.#ortographicCamera_.updateProjectionMatrix();
+
     }
 
     #raf_() {
@@ -76,6 +144,8 @@ class App {
     }
 
     #step_(timeElapsed) {
+        this.#ortographicCamera_.position.copy(this.#perspectiveCamera_.position);
+        this.#ortographicCamera_.quaternion.copy(this.#perspectiveCamera_.quaternion);
     }
 }
 
